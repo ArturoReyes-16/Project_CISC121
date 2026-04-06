@@ -19,8 +19,10 @@ state = {
     "mid": None,
     "target": None,
     "done": False,
-    "found": False  # <-- added
+    "found": False  # To track if we actually found the correct range or just ran out of bounds
 }
+
+# Renders dosage table with color coding based on current state
 
 
 def render_table():
@@ -30,19 +32,19 @@ def render_table():
     for i, (low, high, dose) in enumerate(table):
         color = ""
 
-        # Discarded
+        # Discarded (RED)
         if i < state["low"] or i > state["high"]:
             color = "background-color: #ffcccc;"
 
-        # Current guess
+        # Current guess (YELLOW)
         if state["mid"] == i and not state["done"]:
             color = "background-color: #fff3cd;"
 
-        # Correct (only if found)
+        # Correct (only if found) (GREEN)
         if state["done"] and state["found"] and state["mid"] == i:
             color = "background-color: #ccffcc;"
 
-        # If done but NOT found (out-of-bounds), mark last mid red
+        # If done but NOT found (out-of-bounds) (RED)
         if state["done"] and not state["found"] and state["mid"] == i:
             color = "background-color: #ffcccc;"
 
@@ -57,7 +59,7 @@ def start_game(weight):
     state["low"] = 0
     state["high"] = len(table)-1
     state["done"] = False
-    state["found"] = False  # <-- reset
+    state["found"] = False  # reset found status at the start of a new game
     state["target"] = weight
     state["mid"] = (state["low"] + state["high"]) // 2
 
@@ -122,7 +124,7 @@ def make_guess(direction):
     elif direction == "DONE":
         if mid_low <= target <= mid_high:
             state["done"] = True
-            state["found"] = True  # <-- mark as actually found
+            state["found"] = True  # mark as actually found
             return (
                 f"Correct! {target} lbs is in {mid_low}-{mid_high} lbs.\nDose: {mid_dose}",
                 gr.update(visible=False),
@@ -142,7 +144,7 @@ def make_guess(direction):
     # Next step
     if state["low"] > state["high"]:
         state["done"] = True
-        state["found"] = False  # <-- out-of-bounds
+        state["found"] = False  # out of bounds
         return (
             "The weight is out of bounds! No valid dosage range found.",
             gr.update(visible=False),
@@ -163,7 +165,7 @@ def make_guess(direction):
     )
 
 
-# UI
+# Gradio UI
 with gr.Blocks() as demo:
     gr.Markdown("# Child Tylenol Dosage Assistant (Binary Search Simulation)")
     gr.Markdown("## How it works")
@@ -179,6 +181,7 @@ with gr.Blocks() as demo:
                 The table on the right visually represent the Binary Search Process: RED shows discarded ranges, YELLOW shows current guess, and GREEN shows the correct range once found.""")
 
     with gr.Row():
+        # Left side: Inputs and feedback
         with gr.Column():
             weight_input = gr.Number(label="Enter weight (lbs)")
             start_btn = gr.Button("Start")
@@ -188,11 +191,13 @@ with gr.Blocks() as demo:
             right_btn = gr.Button("➡ RIGHT", visible=False)
             done_btn = gr.Button("✔ DONE", visible=False)
 
+        # Right side: Dosage Table
         with gr.Column():
             gr.Markdown(
                 "<div style='text-align: center;'><h2>Dosage Table</h2></div>")
             table_display = gr.HTML(render_table())
 
+# Gradio Buttons
     start_btn.click(start_game,
                     inputs=weight_input,
                     outputs=[output, left_btn, right_btn, done_btn, table_display])
